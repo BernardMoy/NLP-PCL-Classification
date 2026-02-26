@@ -1,6 +1,20 @@
+import nltk
 import pandas as pd 
 import numpy as np 
 from matplotlib import pyplot as plt
+from collections import Counter
+from sklearn.feature_extraction.text import CountVectorizer
+from nltk import ngrams
+from nltk.corpus import stopwords
+import string
+
+# Define constants 
+nltk.download('stopwords')
+STOPWORDS = set(stopwords.words('english'))
+print(f"{len(STOPWORDS)} stopwords loaded")
+print("="*50)
+
+SPECIAL_CHARACTERS = ['&amp;', '&lt;', '&gt;', '<h>', '\n', '\t']
 
 # Read the pcl.tsv dataset 
 df = pd.read_csv('data/dontpatronizeme_pcl.tsv', sep='\t')
@@ -39,20 +53,14 @@ print("="*50)
 # Drop NA values for now 
 df = df.dropna()
 
-# Check for special characters 
-print("Special characters:")
-special_characters = ['&amp;', '&lt;', '&gt;', '<h>', '\n', '\t']
-for char in special_characters: 
-    rows = df[df["text"].str.contains(char, regex=False, na=False)]
-    print(f"Rows containing {char}:")
-    print(rows if rows.shape[0] > 0 else f"No rows.")
-print("="*50)
+
 
 # Show the distribution of keywords 
 print("Distribution of keywords:")
 keyword_counter = df["keyword"].value_counts() 
 print(keyword_counter)
 print("="*50) 
+
 
 # Show the distribution of sentence length 
 print("Distribution of number of words:")
@@ -92,9 +100,51 @@ labels_yesno = df["label"].apply(lambda x: x > 1 ).value_counts()
 print(labels_yesno)
 print("="*50) 
 
+
+"""
+Number of unique words, filler words, special characters, n-gram (2,3)
+"""
+# Show the number of unique sentence words 
+print("Number of unique words:")
+unique = df["text"].str.split().explode().nunique()
+print(unique)
+print("="*50)
+
+# Check for special characters 
+print("Special characters:")
+for char in SPECIAL_CHARACTERS: 
+    rows = df[df["text"].str.contains(char, regex=False, na=False)]
+    print(f"Rows containing {char}:")
+    print(rows if rows.shape[0] > 0 else f"No rows.")
+print("="*50)
+
+
+"""
+To create cleaned text columns: 
+- Remove stop words
+- Remove special characters
+- Remove 's
+- Remove punctuations
+- Lowercase 
+"""
+# Create text column without stop words 
+text_cleaned = df["text"].apply(
+    lambda x: " ".join([w for w in x.lower().split() if w not in STOPWORDS and w not in string.punctuation and w != "'s" and w not in SPECIAL_CHARACTERS])
+)
+
+# print(text_cleaned.head())
+
+# Check for the most frequent n-grams 
+for n in range(2,4): 
+    print(f"Top 20 {n}-grams:")
+    ngram_counts = Counter(ngrams(text_cleaned.str.split().explode(), n))
+    print(ngram_counts.most_common(20)) 
+print("="*50)
+
 #================================================================================
 """
 Cooccurrence matrix of keywords, 
 n-gram, 
+TF-IDF,
 TSNE
 """
