@@ -48,18 +48,14 @@ df = df.dropna()
 
 # Utility function that returns whether a n-gram contains stopwords 
 def contains_stopwords(gram): 
-    s = set(gram.split())
-    return len(s.intersection(STOPWORDS)) != 0 
+    if isinstance(gram, str): 
+        s = set(gram.split())
+        return len(s.intersection(STOPWORDS)) != 0 
+    elif isinstance(gram, tuple):  
+        return len(set(gram).intersection(STOPWORDS)) != 0 
 
 #================================================================================
-"""
-Duplicates, special characters, 
-Keyword distribution, 
-label distribution (YES OR NO) within each keyword and overall, 
-text length distribution 
-"""
 def univariate_analysis(): 
-    
     # Show the distribution of keywords 
     print("Distribution of keywords:")
     keyword_counter = df["keyword"].value_counts() 
@@ -118,7 +114,6 @@ def univariate_analysis():
 
     """
     To create cleaned text columns: 
-    - Remove stop words
     - Remove special characters
     - Remove 's
     - Remove punctuations
@@ -126,87 +121,92 @@ def univariate_analysis():
     """
     # Create text column without stop words 
     text_cleaned = df["text"].apply(
-        lambda x: " ".join([w for w in x.lower().split() if w not in STOPWORDS and w not in string.punctuation and w != "'s" and w not in SPECIAL_CHARACTERS])
+        lambda x: " ".join([w for w in x.lower().split() if w not in string.punctuation and w != "'s" and w not in SPECIAL_CHARACTERS])
     )
 
     # print(text_cleaned.head())
 
     # Check for the most frequent n-grams  
-    print(f"Top 20 2-grams:")
-    bi_gram_counts = Counter(ngrams(text_cleaned.str.split().explode(), 2))
+
+    # Remove n-grams with stopwords, do this after obtaining the n-grams to make sure
+    # all n-grams existed in the original document 
+    print(f"Top 20 most frequent bigrams:")
+    bigrams = [x for x in ngrams(text_cleaned.str.split().explode(), 2) if not contains_stopwords(x)] 
+    bi_gram_counts = Counter(bigrams) 
     print(bi_gram_counts.most_common(20)) 
 
-    print(f"Top 20 3-grams:")
-    tri_gram_counts = Counter(ngrams(text_cleaned.str.split().explode(), 3))
+    print(f"Top 20 most frequent trigrams:")
+    trigrams = [x for x in ngrams(text_cleaned.str.split().explode(), 3) if not contains_stopwords(x)] 
+    tri_gram_counts = Counter(trigrams)
     print(tri_gram_counts.most_common(20)) 
     print("="*50)
 
+    # TF-IDF if have time 
+
 #================================================================================
-"""
-Cooccurrence matrix of keywords, 
-n-gram, 
-TF-IDF,
-TSNE
-"""
 
-"""
-# Label distribution, for each keyword
-print("Label distribution for each keyword:")
-labels = df.groupby("keyword")["label"].value_counts()
-print(labels) 
-labels_yesno = (df["label"] > 1).groupby(df["keyword"]).value_counts()
-print(labels_yesno)
+def bivariate_analysis(): 
+    # Label distribution, for each keyword
+    print("Label distribution for each keyword:")
+    labels = df.groupby("keyword")["label"].value_counts()
+    print(labels) 
+    labels_yesno = (df["label"] > 1).groupby(df["keyword"]).value_counts()
+    print(labels_yesno)
 
-# plot 
-keywords = df["keyword"].unique() 
-unique_kw = len(keywords)
-colors = {
-    0: '#8fffad',
-    1: '#b8ffcb',
-    2: '#ff9ecb',
-    3: '#ff7dba',
-    4: '#ff4fa1'
-}
-fig, ax = plt.subplots(1, unique_kw, figsize = (5*unique_kw, 5))
-for a, k in zip(ax, keywords): 
-    data = df[df["keyword"] == k]["label"].value_counts()  # get counter for label for this keyword
-    labels = [str(label) for label in data.index]   # Extract labels 0-5 from the value counts dict
-    colors = [colors[label] for label in data.index]  # Set green for not PCL, red for PCL
-    a.pie(data.values, labels = labels, colors = colors) 
-    a.set_title(k)
-plt.show() 
+    # plot 
+    keywords = df["keyword"].unique() 
+    unique_kw = len(keywords)
+    colors = {
+        0: '#8fffad',
+        1: '#b8ffcb',
+        2: '#ff9ecb',
+        3: '#ff7dba',
+        4: '#ff4fa1'
+    }
+    fig, ax = plt.subplots(1, unique_kw, figsize = (5*unique_kw, 5))
+    for a, k in zip(ax, keywords): 
+        data = df[df["keyword"] == k]["label"].value_counts()  # get counter for label for this keyword
+        labels = [str(label) for label in data.index]   # Extract labels 0-5 from the value counts dict
+        colors = [colors[label] for label in data.index]  # Set green for not PCL, red for PCL
+        a.pie(data.values, labels = labels, colors = colors) 
+        a.set_title(k)
+    plt.show() 
 
-print("="*50) 
-""" 
+    print("="*50) 
 
 
-# Find out which uni-gram / bi-gram is most associated with the label 
-vectorizer = CountVectorizer(
-    ngram_range=(2,3),
-    stop_words=[], 
-    min_df=5  # Require each n-gram to appear in at least 5 documents, otherwise the result will be full of one appearance of it with high score
-)
+    # Find out which uni-gram / bi-gram is most associated with the label 
+    vectorizer = CountVectorizer(
+        ngram_range=(2,3),
+        stop_words=[], 
+        min_df=5  # Require each n-gram to appear in at least 5 documents, otherwise the result will be full of one appearance of it with high score
+    )
 
-X = vectorizer.fit_transform(df["text"])
-y = df["label"] > 1  # Use binary classification here 
-print(X.shape, y.shape)
+    X = vectorizer.fit_transform(df["text"])
+    y = df["label"] > 1  # Use binary classification here 
+    print(X.shape, y.shape)
 
-names = vectorizer.get_feature_names_out()
+    names = vectorizer.get_feature_names_out()
 
-model = LogisticRegression(class_weight='balanced') 
-model.fit(X,y) 
-coefs = np.round(model.coef_[0], 2)
+    model = LogisticRegression(class_weight='balanced') 
+    model.fit(X,y) 
+    coefs = np.round(model.coef_[0], 2)
 
-# Filter out n-grams that contain stop words. 
-coefs_and_names = zip(coefs, names)
-coefs_and_names = [(c, n) for c,n in coefs_and_names if not contains_stopwords(n)]
+    # Filter out n-grams that contain stop words. 
+    coefs_and_names = zip(coefs, names)
+    coefs_and_names = [(c, n) for c,n in coefs_and_names if not contains_stopwords(n)]
 
-# Find the coefficients that is most likely and least likely PCL 
-most_likely = sorted(coefs_and_names, reverse=True)[:20]
-least_likely = sorted(coefs_and_names)[:20]
+    # Find the coefficients that is most likely and least likely PCL 
+    most_likely = sorted(coefs_and_names, reverse=True)[:20]
+    least_likely = sorted(coefs_and_names)[:20]
 
-print("bi-grams or tri-grams most likely lead to PCL:")
-print(most_likely) 
+    print("bi-grams or tri-grams most likely lead to PCL:")
+    print(most_likely) 
 
-print("bi-grams or tri-grams least likely lead to PCL:")
-print(least_likely)
+    print("bi-grams or tri-grams least likely lead to PCL:")
+    print(least_likely)
+
+
+# Show results 
+univariate_analysis() 
+bivariate_analysis() 
