@@ -64,19 +64,22 @@ def univariate_analysis():
 
 
     # Show the distribution of sentence length 
-    print("Distribution of number of words:")
+    print("Distribution of sentence length:")
     sentence_length = df["text"].apply(lambda x: len(x.split()))
     plt.figure()
-    plt.xlim(0, 300) 
+    plt.xlim(0, 200) 
     plt.hist(sentence_length, bins=100)
-    plt.xlabel("Number of words")
+    plt.xlabel("Sentence length")
     plt.ylabel("Frequency")
-    plt.title("Distribution of Number of words")
+    plt.title("Distribution of sentence length")
     plt.show()
 
     print("Min, max, mean sentence length:")
-    print(min(sentence_length), max(sentence_length), np.mean(sentence_length))
+    print(min(sentence_length), max(sentence_length), np.mean(sentence_length), np.median(sentence_length))
     print("="*50) 
+
+    print("95 percentile sentence length: ")
+    print(np.percentile(sentence_length, [2.5,97.5]))
 
     # Check for duplicates of sentences 
     print("Duplicates of sentences:")
@@ -85,13 +88,13 @@ def univariate_analysis():
     print("="*50) 
 
 
-    # Label distribution overall 
-    print("Label distribution overall:") 
-    labels = df["label"].value_counts() 
-    print(labels)
-    labels_yesno = df["label"].apply(lambda x: x > 1 ).value_counts()
-    print(labels_yesno)
-    print("="*50) 
+    # # Label distribution overall 
+    # print("Label distribution overall:") 
+    # labels = df["label"].value_counts() 
+    # print(labels)
+    # labels_yesno = df["label"].apply(lambda x: x > 1 ).value_counts()
+    # print(labels_yesno)
+    # print("="*50) 
 
 
     """
