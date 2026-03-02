@@ -1,0 +1,1 @@
+Delete checkpoints folder on submission. 
