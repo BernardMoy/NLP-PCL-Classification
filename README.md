@@ -44,17 +44,21 @@ root/
 └── ...
 ```
 
-### Folder Description
+### Description
 
 - `BestModel/`: Contains `ensemble.ipynb` that loads improved trained models and create the ensemble model.
 - `data/`: Contains the PCL dataset train and test data, and the indices for train / val split.
 - `evaluation/`: Contains the `evaluation.ipynb` file to perform evaluation on different models, and contains labels predicted from different models.
 - `models_implementation/`: Contains the main implementation of different approaches
-- `models/`: Not in this repository. Contains trained models that can be loaded.
+- `models/`: Not in this repository (too large). Contains trained models that can be loaded.
+- `analysis.py`: Display exploratory data analysis results of the PCL dataset.
+- `dev.txt`: Prediction results for the official dev set (0 for not PCL, 1 for PCL)
+- `test.txt`: Prediction results for the official test set.
+- `report.pdf`: A report documenting the proposed approach, detailed metrics and error analysis.
 
 ### Implemented Approaches
 
-The implemented approaches are described in the `models_implementation/` folder.
+The implemented approaches are described in the `models_implementation/` folder. All of them are trained with batch size = 32 with 5 epochs, where the best model was chosen.
 
 - `baseline.ipynb`: RoBERTa baseline from HuggingFace
 - `only_oversample.ipynb`: RoBERTa baseline + Oversampling the minority (positive) class
